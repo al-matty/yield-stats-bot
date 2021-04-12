@@ -85,7 +85,7 @@ def scrape_price_mc(dict_, dictKey):
 
     return metrics
 
-def getMetrics():
+def get_comp_metrics():
 
     # Dict to determine which tokens to scrape information for, as well
     # as for the positioning in the image

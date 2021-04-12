@@ -1,0 +1,4 @@
+Check /stats for
+/loans taken out,
+/assets borrowed and collateralized,
+/il  - impermanent loss for ETH-YLD pair
