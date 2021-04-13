@@ -1,4 +1,4 @@
-Check stats for
-/loans taken out,
-/assets borrowed and collateralized,
-/il  - impermanent loss for ETH-YLD pair
+Current available /stats:
+/loans taken out
+/assets borrowed and collateralized
+/IL (impermanent loss) for 🍣ETH-YLD
