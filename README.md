@@ -1,4 +1,4 @@
-# Telegram Merch Bot
+# yield.credit Stats Bot (Telegram Front End)
 
 
 A Telegram bot that produces merchandise for the cryptocurrency 'YLD' on demand.
