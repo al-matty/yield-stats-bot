@@ -84,8 +84,8 @@ LOAN_FAC = instantiate_contract(loan_fac_address, ABI_LOAN_FAC)
 
 try:
     ALL_LOANS = set(LOAN_FAC.caller.getLoans())
-except:
-    message = "Couldn't query LoanFactory.sol. Aborted data collection."
+except Exception as e:
+    message = f"Couldn't query LoanFactory.sol. Aborted data collection. ({e})"
     print(message)
     log(logfile, message)
 
@@ -322,29 +322,35 @@ def get_address_by_symbol(symbol):
     address = next(k for k, v in lu.token_map.items() if v['symbol'] == symbol)
     return address
 
+# Helper function: Looks up decimals in lookups.py file
+def get_token_decimals(token_address):
+    return lu.token_map[token_address]['decimals']
 
-# Looks up decimals for ERC20 in token_map. Queries web3 if not in token_map
+
+# Query web3 for ERC20 decimals. Not used currently
 def get_decimals_for_erc20(address, logfile=None):
     '''
     Takes ERC20 address string, gets abi, instantiates contract,
     calls contract.functions.decimals(), returns value.
     '''
-    # Possibility: Address in token_map. Read value from there.
-    if address in lu.token_map:
-        result = lu.token_map[address]['decimals']
+    # Exclude AMPL, AAVE, TUSD, USDC, whose abis don't have a decimals() function
+    excluded = {
+        '0xD46bA6D942050d489DBd938a2C909A5d5039A161',
+        '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+        '0x0000000000085d4780B73119b644AE5ecd22b376',
+        '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+        }
 
-    # Possibility: Address not in token_map. Query web3.
+    if address in excluded:
+        print("Can't use decimals() function for this token. Check etherscan.io manually.")
+
     else:
-        checksum_address = address
+        # Query web3
         checksum_address = w3.toChecksumAddress(address)
-        abi_token = get_abi(checksum_version)
-        contract = instantiate_contract(checksum_version, abi_token)
+        abi_token = get_abi(checksum_address)
+        contract = instantiate_contract(checksum_address, abi_token)
         result = contract.functions.decimals().call()
-
-        if logfile:
-            message = f'ERC20 address {address} not found in token_map. ' \
-                'Decimals had to be fetched from web3.'
-            log(logfile, message)
+        print(f'Decimals for {address}:', result)
 
     return result
 

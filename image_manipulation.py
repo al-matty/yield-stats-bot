@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 from math import floor
-#import data_aggregation as da
+import data_aggregation as da
 
 
 

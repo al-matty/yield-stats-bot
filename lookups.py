@@ -25,10 +25,14 @@ type_map = {
 # Map linking each supported token to some data needed frequently
 
 token_map = {
+    '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2':
+        {'symbol': 'WETH', 'coingecko_str': 'weth', 'decimals': 18},
+    '0x6B175474E89094C44Da98b954EedeAC495271d0F':
+        {'symbol': 'DAI', 'coingecko_str': 'dai', 'decimals': 18},
     '0x111111111117dC0aa78b770fA6A738034120C302':
         {'symbol': '1INCH', 'coingecko_str': '1inch', 'decimals': 18},
     '0xD46bA6D942050d489DBd938a2C909A5d5039A161':
-        {'symbol': 'AMPL','coingecko_str': 'ampleforth', 'decimals': 18},
+        {'symbol': 'AMPL','coingecko_str': 'ampleforth', 'decimals': 9},
     '0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C':
         {'symbol': 'BNT', 'coingecko_str': 'bancor-network', 'decimals': 18},
     '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9':
@@ -46,7 +50,7 @@ token_map = {
     '0x2ba592F78dB6436527729929AAf6c908497cB200':
         {'symbol': 'CREAM', 'coingecko_str': 'cream', 'decimals': 18},
     '0xA0b73E1Ff0B80914AB6fe0444E65848C4C34450b':
-        {'symbol': 'CRO', 'coingecko_str': 'crypto-com-coin', 'decimals': 18},
+        {'symbol': 'CRO', 'coingecko_str': 'crypto-com-coin', 'decimals': 8},
     '0xD533a949740bb3306d119CC777fa900bA034cd52':
         {'symbol': 'CRV', 'coingecko_str': 'curve-dao-token', 'decimals': 18},
     '0xF629cBd94d3791C9250152BD8dfBDF380E2a3B9c':
@@ -78,11 +82,11 @@ token_map = {
     '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984':
         {'symbol': 'UNI', 'coingecko_str': 'uniswap', 'decimals': 18},
     '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48':
-        {'symbol': 'USDC', 'coingecko_str': 'usd-coin', 'decimals': 18},
+        {'symbol': 'USDC', 'coingecko_str': 'usd-coin', 'decimals': 6},
     '0xdAC17F958D2ee523a2206206994597C13D831ec7':
-        {'symbol': 'USDT', 'coingecko_str': 'tether', 'decimals': 18},
+        {'symbol': 'USDT', 'coingecko_str': 'tether', 'decimals': 6},
     '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599':
-        {'symbol': 'WBTC', 'coingecko_str': 'wrapped-bitcoin', 'decimals': 18},
+        {'symbol': 'WBTC', 'coingecko_str': 'wrapped-bitcoin', 'decimals': 8},
     '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e':
         {'symbol': 'YFI', 'coingecko_str': 'yearn-finance', 'decimals': 18},
     '0xE41d2489571d322189246DaFA5ebDe1F4699F498':
