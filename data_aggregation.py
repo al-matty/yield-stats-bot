@@ -91,22 +91,6 @@ except Exception as e:
 
 
 
-# Helper function: Takes token address and returns symbol as specified in token_map
-def get_token_symbol(token_address):
-    try:
-        return lu.token_map[token_address]['symbol']
-    except KeyError:
-        print(
-            f'''
-            Couldn't find a symbol for token {token_address} in token_map.
-            Maybe it's only recently been added? Address was returned instead.
-            ''')
-        return token_address
-
-# Helper function: Takes token address, returns coingecko location for scraping
-def get_token_str(token_address):
-    return lu.token_map[token_address]['coingecko_str']
-
 # Helper function needed by get_loan_data()
 def extract_loan_details(loan_dict):
     '''Splits up 'loan_details' into single entries, deletes original.'''
@@ -294,41 +278,205 @@ def clean(string):
         """
     return float(string.replace(',','').replace('$','').replace('%',''))
 
-# Helper function: Takes token address and returns symbol as specified in token_map
+# Helper function: Looks up token symbol in lookups.py file
 def get_token_symbol(token_address, logfile=None):
+
     try:
         return lu.token_map[token_address]['symbol']
-    except KeyError:
-        print(
-            f'''
-            Couldn't find a symbol for token {token_address} in token_map.
-            Maybe it's only supported since today? I returned its address instead.
-            ''')
-        return token_address
 
-# Helper function: Takes token address, returns coingecko location for scraping
-def get_token_str(token_address):
+    except KeyError:
+        message = f"get_token_symbol(): No entry in token_map in lookups.py for {token_address}."
+        print(message)
+
+        if logfile:
+            log(logfile, message)
+
+# Helper function: Looks up token coingecko str in lookups.py file
+def get_token_str(token_address, logfile=None):
+
     try:
         return lu.token_map[token_address]['coingecko_str']
+
     except KeyError:
-        print(
-            f'''
-            Couldn't find the coingecko string for token {token_address} in token_map.
-            Maybe it's only been supported since today?
-            ''')
+        message = f"get_token_str(): No entry in token_map in lookups.py for {token_address}."
+        print(message)
+
+        if logfile:
+            log(logfile, message)
 
 # Helper function: Reverse lookup from token_map
 def get_address_by_symbol(symbol):
     address = next(k for k, v in lu.token_map.items() if v['symbol'] == symbol)
     return address
 
-# Helper function: Looks up decimals in lookups.py file
-def get_token_decimals(token_address):
-    return lu.token_map[token_address]['decimals']
+# Helper function: Looks up token decimals value in lookups.py file
+def get_token_decimals(token_address, logfile=None):
+    try:
+        return lu.token_map[token_address]['decimals']
+    except KeyError:
+        message = f"No entry in token_map in lookups.py for {token_address}."
+        print(message)
+        if logfile:
+            log(logfile, message)
+
+# Decodes an ERC20 amount based on its number of decimals
+def apply_decimals(amount, token_address=None, token_symbol=None, logfile=None):
+    '''
+    Takes ERC20 address string and looks up / fetches from web3
+    decimal information. Returns correct value based on decimals.
+    '''
+
+    if token_symbol:
+        token_address = get_address_by_symbol(symbol)
+
+    if token_address:
+        decimals = get_token_decimals(token_address, logfile=logfile)
+        DECIMALS = 10**decimals
+
+        return amount // DECIMALS
+
+    else:
+        print('Either a token adress or symbol string has to be specified.')
+
+
+
+
+# TODO: Placement of scraped_prices dict (needs to be renewed each TVL update etc.!)
+#scraped_prices = {}
+
+# Helper function: Tries to get token price from scraped_prices before scraping
+def sparse_scrape(token_addy):
+    '''
+    Returns current USD value of 1 token of given address.
+    Scrapes token price from web only if necessary.
+    Alway tries to read from scraped_prices dict first.
+    '''
+    # Scrape every token once only
+    if token_addy in scraped:
+        # Read from memory
+        token_price = scraped[token_addy]
+
+        # For debugging:
+        #symbol = get_token_symbol(token_addy)
+        #print(f'Read {symbol} from memory.')
+
+    else:
+        # Scrape from web
+        token_str = get_token_str(token_addy, logfile)
+        token_price = get_token_price(token_str)
+        scraped[token_addy] = token_price
+
+    return token_price
+
+# Helper function: Returns (principal amount, principal token) for a loan
+def get_principal_token_tup(loan_addy):
+    '''
+    Returns a tuple (decoded amount, token_addy) for borrowed amount of loan
+    '''
+    loan_data = get_all_loans()[loan_addy]
+    raw = loan_data['principal']
+    token_addy = loan_data['address_lending_token']
+    decoded = apply_decimals(raw, token_addy)
+
+    # For debugging:
+    #token_symbol = get_token_symbol(token_addy)
+
+    return decoded, token_addy
+
+# Helper function: Returns (collateral amount, collateral token) for a loan
+def get_collateral_token_tup(loan_addy):
+    '''
+    Returns a tuple (decoded amount, token_addy) for amt collateralized of loan
+    '''
+    loan_data = get_all_loans()[loan_addy]
+    raw = loan_data['collateral']
+    token_addy = loan_data['address_collateral_token']
+    decoded = apply_decimals(raw, token_addy)
+
+    # For debugging:
+    #token_symbol = get_token_symbol(token_addy)
+
+    return decoded, token_addy
+
+# Helper function: Returns USD amount *currently* borrowed
+def get_principal_usd_val(loan_addy, logfile=None):
+    amt_raw, token = get_principal_token_tup(loan_addy)
+    token_price = sparse_scrape(token)
+    amt_usd = amt_raw * token_price
+
+    # For degugging:
+    #symbol = get_token_symbol(token)
+    #print(f'Loan {loan_addy}:')
+    #print(f'Borrowed {amt_raw} {symbol} ({amt_usd} USD).')
+
+    return amt_usd
+
+# Helper function: Returns USD amount of collateral *currently* borrowed against
+def get_collateral_usd_val(loan_addy, logfile=None):
+    amt_raw, token = get_collateral_token_tup(loan_addy)
+    token_price = sparse_scrape(token)
+    amt_usd = amt_raw * token_price
+
+    # For degugging:
+    #symbol = get_token_symbol(token)
+    #print(f'Loan {loan_addy}:')
+    #print(f'Borrowed {amt_raw} {symbol} ({amt_usd} USD).')
+
+    return amt_usd
+
+
+
+# Get sum of currently borrowed amounts
+def get_currently_borrowed():
+    '''
+    Returns sum of borrowed amounts currently.
+    TVL = sum of all collateral USD values of active loans
+    '''
+    active_addies = set(get_active_loans().keys())
+    principal_loan_tups = [(get_principal_usd_val(loan, logfile=logfile), loan) for loan in active_addies]
+    total = sum(tup[0] for tup in principal_loan_tups)
+
+    # For debugging:
+    #[print(ele) for ele in principal_loan_tups]
+
+    return total
+
+# Get TVL (sum of current collateral values used in loans)
+def get_current_TVL():
+    '''
+    Returns current TVL.
+    TVL = sum of all collateral USD values of active loans
+    '''
+    active_addies = set(get_active_loans().keys())
+    collateral_loan_tups = [(get_collateral_usd_val(loan, logfile=logfile), loan) for loan in active_addies]
+    TVL = sum(tup[0] for tup in collateral_loan_tups)
+
+    # For debugging:
+    #[print(ele) for ele in collateral_loan_tups]
+
+    return TVL
+
+
+
+
+
+a = '15.04. TVL: 329934.68'
+b = '15.04. Borrowed: 185326.34625'
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Query web3 for ERC20 decimals. Not used currently
-def get_decimals_for_erc20(address, logfile=None):
+def get_decimals_from_web3(address, logfile=None):
     '''
     Takes ERC20 address string, gets abi, instantiates contract,
     calls contract.functions.decimals(), returns value.
@@ -354,25 +502,6 @@ def get_decimals_for_erc20(address, logfile=None):
 
     return result
 
-
-# Decodes an ERC20 amount based on its number of decimals
-def apply_decimals(amount, token_address=None, token_symbol=None, logfile=None):
-    '''
-    Takes ERC20 address string and looks up / fetches from web3
-    decimal information. Returns correct value based on decimals.
-    '''
-
-    if token_symbol:
-        token_address = get_address_by_symbol(symbol)
-
-    if token_address:
-        decimals = get_decimals_for_erc20(token_address, logfile=logfile)
-        DECIMALS = 10**decimals
-
-        return amount // DECIMALS
-
-    else:
-        print('Either a token adress or symbol string has to be specified.')
 
 
 # Returns the current supply for an ERC20 token (web3 query). Nan if weird.
