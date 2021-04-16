@@ -150,31 +150,29 @@ def get_loan_data(loan_address):
 
     return d
 
-
+# Data of all loans ever taken out on yield.credit
 ALL_LOANS_DATA = {loan: get_loan_data(loan) for loan in ALL_LOANS}
 
-
-# Data of all loans ever taken out on yield.credit
-
+# Helper functions: Loan filters
 def get_all_loans():
     global ALL_LOANS_DATA
     return ALL_LOANS_DATA
-
 def get_active_loans():
     global ALL_LOANS_DATA
     active = {k: v for k, v, in ALL_LOANS_DATA.items() if v['loan_status'] == 0}
     return active
-
 def get_repaid_loans():
     global ALL_LOANS_DATA
     repaid = {k: v for k, v, in ALL_LOANS_DATA.items() if v['loan_status'] == 1}
     return repaid
-
 def get_defaulted_loans():
     global ALL_LOANS_DATA
     defaulted = {k: v for k, v, in ALL_LOANS_DATA.items() if v['loan_status'] == 2}
     return defaulted
-
+def get_non_defaulted_loans():
+    global ALL_LOANS_DATA
+    non_defaulted = {k: v for k, v, in ALL_LOANS_DATA.items() if v['loan_status'] != 2}
+    return non_defaulted
 def get_loans_w_bogus_status():
     '''For debugging only'''
     global ALL_LOANS_DATA
@@ -319,7 +317,7 @@ def get_token_decimals(token_address, logfile=None):
         if logfile:
             log(logfile, message)
 
-# Decodes an ERC20 amount based on its number of decimals
+# Decode ERC20 amount based on its number of decimals
 def apply_decimals(amount, token_address=None, token_symbol=None, logfile=None):
     '''
     Takes ERC20 address string and looks up / fetches from web3
@@ -341,30 +339,40 @@ def apply_decimals(amount, token_address=None, token_symbol=None, logfile=None):
 
 
 
-# TODO: Placement of scraped_prices dict (needs to be renewed each TVL update etc.!)
-#scraped_prices = {}
+# TODO: Placement of SCRAPED_PRICES dict (needs to be overwritten for each update of daily stats!)
+SCRAPED_PRICES = {}
 
-# Helper function: Tries to get token price from scraped_prices before scraping
-def sparse_scrape(token_addy):
+# Resets prices stored in memory for sparse scraping.
+def reset_scraped_prices():
+    '''
+    Resets the saved prices used for sparse scraping.
+    Needs to be reset whenever new metrics are calculated that
+    depend on current prices of cryptos.
+    '''
+    global SCRAPED_PRICES
+    SCRAPED_PRICES = {}
+
+# Helper function: Tries to get token price from SCRAPED_PRICES before scraping
+def sparse_scrape(token_addy, logfile=None):
     '''
     Returns current USD value of 1 token of given address.
     Scrapes token price from web only if necessary.
-    Alway tries to read from scraped_prices dict first.
+    Alway tries to read from SCRAPED_PRICES dict first.
     '''
     # Scrape every token once only
-    if token_addy in scraped:
+    if token_addy in SCRAPED_PRICES:
         # Read from memory
-        token_price = scraped[token_addy]
+        token_price = SCRAPED_PRICES[token_addy]
 
         # For debugging:
-        #symbol = get_token_symbol(token_addy)
-        #print(f'Read {symbol} from memory.')
+        symbol = get_token_symbol(token_addy)
+        print(f'Read {symbol} from memory.')
 
     else:
         # Scrape from web
         token_str = get_token_str(token_addy, logfile)
         token_price = get_token_price(token_str)
-        scraped[token_addy] = token_price
+        SCRAPED_PRICES[token_addy] = token_price
 
     return token_price
 
@@ -424,10 +432,71 @@ def get_collateral_usd_val(loan_addy, logfile=None):
 
     return amt_usd
 
+# Helper function: Returns decoded interest rate for a loan
+def get_interest_rate(loan_addy, logfile=None):
+    loan_data = get_all_loans()[loan_addy]
+    raw = loan_data['interest']
+    decoded = raw / 100
+
+    return decoded
+
+# Helper function: Converts duration in timestamp (seconds) to days
+def ts_duration_to_days(ts):
+
+    if isinstance(ts, str):
+        ts = int(ts)
+
+    return ts // (24 * 3600)
+
+# Helper function: Returns decoded loan duration (days)
+def get_duration_days(loan_addy, logfile=None):
+    loan_data = get_all_loans()[loan_addy]
+
+    raw = loan_data['duration']
+    decoded = ts_duration_to_days(raw)
+
+    return decoded
+
+# Helper function: Returns the current supply for an ERC20 token (web3 query). Nan if token without totalSupply() function.
+def get_supply_for_erc20(symbol=None, address=None):
+    '''
+    Queries web3 for totalSupply() of token, adjusts value using the
+    correct amount of decimals, returns current total supply.
+    Accepts a token's symbol (i.e. 'LINK') or its contract address.
+    Returns NaN if token doesn't have a totalSupply() function.
+    '''
+    # contract.totalSupply() does not work for these tokens
+    not_possible = {'AMPL', 'AAVE', 'TUSD', 'USDC', 'USDT', 'WBTC', 'CRO'}
+    addies_not_possible = {get_address_by_symbol(s) for s in not_possible}
+
+    if symbol:
+        if symbol in not_possible:
+            return np.nan
+
+        address = get_address_by_symbol(symbol)
+
+    if address:
+        if address in addies_not_possible:
+            return np.nan
+
+        checksum_address = w3.toChecksumAddress(address)
+        abi_token = get_abi(checksum_address)
+        contract = instantiate_contract(checksum_address, abi_token)
+        raw_supply = contract.caller.totalSupply()
+        decoded = apply_decimals(raw_supply, address)
+
+        return decoded
+
+    else:
+        print('Either token adress or symbol string has to be specified.')
+
+
+
+
 
 
 # Get sum of currently borrowed amounts
-def get_currently_borrowed():
+def get_currently_borrowed(logfile=None):
     '''
     Returns sum of borrowed amounts currently.
     TVL = sum of all collateral USD values of active loans
@@ -442,7 +511,7 @@ def get_currently_borrowed():
     return total
 
 # Get TVL (sum of current collateral values used in loans)
-def get_current_TVL():
+def get_current_TVL(logfile=None):
     '''
     Returns current TVL.
     TVL = sum of all collateral USD values of active loans
@@ -456,16 +525,59 @@ def get_current_TVL():
 
     return TVL
 
+# Get avg principal USD value of all non_defaulted loans (statusses active and repaid)
+def get_avg_loan_val(logfile=None):
+    '''
+    Returns average loan USD value (= principal) of all loans.
+    Defaulted loans with seized collateral are excluded since
+    their principal value is always 0.
+    '''
+    non_def_addies = set(get_non_defaulted_loans().keys())
+    principal_loan_tups = [(get_principal_usd_val(loan, logfile=logfile), loan) for loan in non_def_addies]
+    mean = sum(tup[0] for tup in principal_loan_tups) / len(principal_loan_tups)
 
+    # For debugging:
+    #[print(ele) for ele in principal_loan_tups]
 
+    return mean
 
+# Get avg interest rate of all loans (active, repaid, and defaulted included)
+def get_avg_interest_rate(logfile=None):
+    '''
+    Returns average interest rate of all loans.
+    '''
+    all_addies = set(get_all_loans().keys())
+    interest_loan_tups = [(get_interest_rate(loan, logfile=logfile), loan) for loan in all_addies]
+    mean = sum(tup[0] for tup in interest_loan_tups) / len(interest_loan_tups)
 
-a = '15.04. TVL: 329934.68'
-b = '15.04. Borrowed: 185326.34625'
+    # For debugging:
+    #[print(ele) for ele in interest_loan_tups]
 
+    return mean
 
+# Get avg interest rate of all loans (active, repaid, and defaulted included)
+def get_avg_loan_duration(logfile=None):
+    '''
+    Returns average duration of all loans in days.
+    '''
+    all_addies = set(get_all_loans().keys())
+    days_loan_tups = [(get_duration_days(loan, logfile=logfile), loan) for loan in all_addies]
+    mean = sum(tup[0] for tup in days_loan_tups) / len(days_loan_tups)
 
+    # For debugging:
+    #[print(ele) for ele in days_loan_tups]
 
+    return mean
+
+# Get YLD's current total supply. Calls contract function totalSupply()
+def get_YLD_supply():
+    return get_supply_for_erc20(symbol='YLD')
+
+# Get # of minted or burned YLD since mainnet. Number positive = minted. Negative = burned.
+def get_minted_burned_YLD(current_YLD_supply):
+    starting_supply = 624000
+    minted_burned = current_YLD_supply - starting_supply
+    return minted_burned
 
 
 
@@ -501,40 +613,6 @@ def get_decimals_from_web3(address, logfile=None):
         print(f'Decimals for {address}:', result)
 
     return result
-
-
-
-# Returns the current supply for an ERC20 token (web3 query). Nan if weird.
-def get_supply_for_erc20(symbol=None, address=None):
-    '''
-    Queries web3 for totalSupply() of token, adjusts value using the
-    correct amount of decimals, returns current total supply.
-    Accepts a token's symbol (i.e. 'LINK') or its contract address.
-    '''
-    # contract.totalSupply() does not work for these tokens
-    not_possible = {'AMPL', 'AAVE', 'TUSD', 'USDC', 'USDT', 'WBTC', 'CRO'}
-    addies_not_possible = {get_address_by_symbol(s) for s in not_possible}
-
-    if symbol:
-        if symbol in not_possible:
-            return np.nan
-
-        address = get_address_by_symbol(symbol)
-
-    if address:
-        if address in addies_not_possible:
-            return np.nan
-
-        checksum_address = w3.toChecksumAddress(address)
-        abi_token = get_abi(checksum_address)
-        contract = instantiate_contract(checksum_address, abi_token)
-        raw_supply = contract.caller.totalSupply()
-        decoded = apply_decimals(raw_supply, address)
-
-        return decoded
-
-    else:
-        print('Either a token adress or symbol string has to be specified.')
 
 
 # Scrapes coingecko and returns dict of various token metrics for 1 asset (calls findCell() for mc rank)
@@ -628,12 +706,3 @@ def ts_to_utc_str(ts):
     parsed = utc.strftime('%Y %b %d %H:%M') + ' UTC'
 
     return parsed
-
-
-# Helper function: Converts duration in timestamp (seconds) to days
-def ts_duration_to_days(ts):
-
-    if isinstance(ts, str):
-        ts = int(ts)
-
-    return ts // (24 * 3600)

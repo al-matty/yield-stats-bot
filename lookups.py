@@ -25,6 +25,8 @@ type_map = {
 # Map linking each supported token to some data needed frequently
 
 token_map = {
+    '0xDcB01cc464238396E213a6fDd933E36796eAfF9f':
+        {'symbol': 'YLD', 'coingecko_str': 'yield', 'decimals': 18},
     '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2':
         {'symbol': 'WETH', 'coingecko_str': 'weth', 'decimals': 18},
     '0x6B175474E89094C44Da98b954EedeAC495271d0F':

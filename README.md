@@ -2,20 +2,14 @@
 
 
 A Telegram bot that produces merchandise for the cryptocurrency 'YLD' on demand.
-You can add this bot on Telegram by searching for its handle `@YLDMerchBot`.
-Send it `/merch` and it sends back infographics with always up-to-date token
-metrics like circulating supply and market capitalization.
+You can add this bot on Telegram by searching for its handle `@ (to be published)`.
+Send it a command and it sends back infographics with always up-to-date
+metrics, i.e. current usage statistics for the platform yield.credit, or a personal impermanent loss graph vs. time, based on the user's pool entry date.
 
-It does so in three steps:
 
-1. Scrape and store up-to-date token metrics from coingecko.com.
-2. Draw scraped data onto the template image.
-3. Send image to user via Telegram.
+Here is an example of one of the infograpics the bot delivers. So far this is obviously still a work in progress:
 
-Here is an example of one of the infograpics the bot delivers. Keep in mind
-that the 'golden' metrics are up-to-date as of the time requested via Telegram.
-
-![Preview](https://github.com/al-matty/TelegramMerchBot/blob/main/currentMerch.png)
+![Preview](https://github.com/al-matty/yield-stats-bot/blob/main/loans.png)
 
 ## Requirements & Installation
 
@@ -30,11 +24,11 @@ If you're using `conda`, you can create a virtual environment and install the
 requirements using this code:
 
 ```
-conda create -n merchbot python=3.6
-conda activate merchbot
+conda create -n statsbot python=3.6
+conda activate statsbot
 pip3 install -r requirements.txt
 ```
 
 ## License
 
-This project is licensed under the [MIT license](https://github.com/al-matty/telegram-merch-bot/blob/main/LICENSE) - see the [LICENSE](https://github.com/al-matty/telegram-merch-bot/blob/main/LICENSE) file for details.
+This project is licensed under the [MIT license](https://github.com/al-matty/yield-stats-bot/blob/main/LICENSE) - see the [LICENSE](https://github.com/al-matty/yield-stats-bot/blob/main/LICENSE) file for details.
