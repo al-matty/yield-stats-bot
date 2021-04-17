@@ -47,19 +47,21 @@ def draw_str(s, img, pos, fontsize=20, color=(255, 255, 255), font='GothamBook.t
     d1.text(pos, s, font=myFont, fill=color)
 
 # Update loans.png with current values and save file
-def update_loan_stats():
-    """Saves loans.png with current information from the blockchain"""
+def update_loan_stats(d):
+    '''
+    Saves new version of loans.png with updated statistics.
+    d is assumed to be a dictionary of loan metrics.
+    '''
     global WHITE, GOLD, DARK, GREY
 
     outfile = 'loans.png'
     img = Image.open('loans_template.png')
 
     # Define metrics and positions
-    loans_total = len(da.get_all_loans())
-    loans_active = len(da.get_active_loans())
-    loans_defaulted = len(da.get_defaulted_loans())
-#    loans_total, loans_active, loans_defaulted = (30, 15, 1)
-# TODO: Uncomment again for real data
+    loans_total = d['total_loans']
+    loans_active = d['active_loans']
+    loans_defaulted = d['defauted_loans']
+    defaulted_frac = d['percent_defauted']
 
 
     # Draw loan metrics on template
@@ -95,8 +97,7 @@ def update_loan_stats():
     draw_str(label1, img, l1_pos(pos), fontsize=lsize, color=lcolor)
     draw_str(label2, img, l2_pos(pos), fontsize=lsize, color=lcolor)
 
-    # Defaulted fraction
-    defaulted_frac = (loans_defaulted / loans_total)*100
+    # Defaulted percentage
     stage = parse_str(defaulted_frac) + '%'
     s = stage.center(5)
     pos = (75, 472)

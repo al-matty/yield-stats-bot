@@ -3,7 +3,7 @@ import random
 import pandas as pd
 import urllib.request
 from bs4 import BeautifulSoup
-from time import sleep
+from time import time, sleep
 from datetime import datetime
 
 from etherscan import Etherscan
@@ -579,7 +579,33 @@ def get_minted_burned_YLD(current_YLD_supply):
     minted_burned = current_YLD_supply - starting_supply
     return minted_burned
 
+# Export specified loan metrics for frontend use or data collection
+def export_loan_metrics_dict():
+    d = {}
 
+    # Get current UTC time
+    timestamp = int(time())
+    parsed_ts = datetime.utcfromtimestamp(timestamp).strftime('%d %b %Y - %H:%M UTC')
+
+    # Get data
+    d['time'] = parsed_ts
+    d['YLD_total_supply'] = get_YLD_supply()
+    d['YLD_minted_burned'] = get_minted_burned_YLD(d['YLD_total_supply'])
+    d['total_loans'] = len(get_all_loans())
+    d['active_loans'] = len(get_active_loans())
+    d['repaid_loans'] = len(get_repaid_loans())
+    d['defauted_loans'] = len(get_defaulted_loans())
+    d['percent_defauted'] = (d['defauted_loans'] / d['total_loans']) * 100
+    d['total_collateral_in_use_USD'] = get_current_TVL()
+    d['total_borrowed_USD'] = get_currently_borrowed()
+    d['avg_loan_val_USD'] = get_avg_loan_val()
+    d['avg_interest_rate'] = get_avg_interest_rate()
+    d['avg_loan_duration_days'] = get_avg_loan_duration()
+
+    # Round all numerical output to 2 decimals
+    d = {k: round(v, 2) if not isinstance(v, str) else v for k, v in d.items()}
+
+    return d
 
 
 
