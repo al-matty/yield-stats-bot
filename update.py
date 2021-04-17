@@ -11,7 +11,7 @@ from data_aggregation import reset_scraped_prices, export_loan_metrics_dict
 from image_manipulation import update_loan_stats
 
 # connection error counter (for debugging only)
-connection_errors = 0
+CONNECTION_ERRORS = 0
 
 # Clear price memory to get current token prices
 reset_scraped_prices()
@@ -22,6 +22,8 @@ def safe_update():
     Tries to fetch loan metrics until there's no connection error.
     Returns a loan statistics dict.
     '''
+    global CONNECTION_ERRORS
+
     try:
 
         metrics = export_loan_metrics_dict()
@@ -29,9 +31,9 @@ def safe_update():
     except ConnectionError:
 
         print('Encountered a connection error. Trying again...')
-        connection_errors += 1
+        CONNECTION_ERRORS += 1
 
-        sleep(20)
+        sleep(10)
         safe_update()
 
     return metrics
