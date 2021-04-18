@@ -47,7 +47,7 @@ def draw_str(s, img, pos, fontsize=20, color=(255, 255, 255), font='GothamBook.t
     d1.text(pos, s, font=myFont, fill=color)
 
 # Update loans.png with current values and save file
-def update_loan_stats(d):
+def update_loan_stats(d, verbose=False):
     '''
     Saves new version of loans.png with updated statistics.
     d is assumed to be a dictionary of loan metrics.
@@ -121,4 +121,5 @@ def update_loan_stats(d):
     # Save outfile
     img.save(outfile)
 
-    print('loans.png updated.')
+    if verbose:
+        print(f'\n{outfile} has been updated with the current data.')

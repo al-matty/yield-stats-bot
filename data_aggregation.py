@@ -338,12 +338,13 @@ def apply_decimals(amount, token_address=None, token_symbol=None, logfile=None):
 
 
 
+# Some global variables for data fetching
+SCRAPED_PRICES = {}      # temporary storage for asset prices to avoid unnecessary scraping
+CONNECTION_ERRORS = 0    # connection error counter (for debugging phase)
 
-# TODO: Placement of SCRAPED_PRICES dict (needs to be overwritten for each update of daily stats!)
-SCRAPED_PRICES = {}
 
 # Resets prices stored in memory for sparse scraping.
-def reset_scraped_prices():
+def reset_scraped_prices(verbose=False):
     '''
     Resets the saved prices used for sparse scraping.
     Needs to be reset whenever new metrics are calculated that
@@ -351,6 +352,50 @@ def reset_scraped_prices():
     '''
     global SCRAPED_PRICES
     SCRAPED_PRICES = {}
+    if verbose:
+        print('Cache for previously scraped prices has been cleared.')
+
+# Wrapper to handle connection errors for data fetching functions
+def safe_getter(function, delay_seconds=10, max_tries=None, try_nr=0):
+    '''
+    Repeatedly tries to run a function until there are no connection
+    errors. Returns whatever the function returns.
+    Example:
+            a = safe_getter(some_function) (<- func without parentheses)
+    '''
+    global CONNECTION_ERRORS
+
+    name = function.__name__
+    result = None
+
+    # Try running the function
+    try:
+        result = function()
+
+    except ConnectionError as e:
+
+        print(f'{name}(): Encountered a connection error.')
+        CONNECTION_ERRORS += 1
+
+        sleep(delay_seconds)
+        print('Trying again...')
+
+        # Possibility: max_tries is set to some number. Keep count of tries.
+        if max_tries:
+            try_nr += 1
+
+            # Repeated calling of function until max_tries is reached
+            if try_nr < max_tries:
+                safe_getter(function, delay_seconds=delay_seconds, max_tries=max_tries, try_nr=try_nr)
+
+            else:
+                print(f'{name}(): Maximum connection attempts ({max_tries}) reached. Returned {result}.')
+
+        # Possibility: max_tries not set. Unlimited repetitions.
+        else:
+            safe_getter(function, delay_seconds=delay_seconds, max_tries=max_tries, try_nr=try_nr)
+
+    return result
 
 # Helper function: Tries to get token price from SCRAPED_PRICES before scraping
 def sparse_scrape(token_addy, logfile=None):
@@ -606,9 +651,6 @@ def export_loan_metrics_dict():
     d = {k: round(v, 2) if not isinstance(v, str) else v for k, v in d.items()}
 
     return d
-
-
-
 
 
 
