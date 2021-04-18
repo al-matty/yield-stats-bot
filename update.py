@@ -14,7 +14,8 @@ import pandas
 from data_aggregation import (
     reset_scraped_prices,
     export_loan_metrics_dict,
-    safe_getter
+    safe_getter,
+    append_to_csv
     )
 from image_manipulation import update_loan_stats
 
@@ -51,7 +52,9 @@ print('\nLoan metrics updated. Data from export_loan_metrics_dict():')
 prettyprint(metrics)
 
 # Save to csv file. Only add header if no csv file exists yet.
-#print(f'\nAppending data to {metrics_csv}...')
-#append_to_csv(metrics_csv, metrics)
+print(f'\nAppending data to {metrics_csv}...')
+append_to_csv(metrics_csv, metrics, verbose=False)
+print(f'{metrics_csv} has been updated successfully.')
 
+# Update loans.png
 update_loan_stats(metrics, verbose=True)

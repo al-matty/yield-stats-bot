@@ -356,7 +356,7 @@ def reset_scraped_prices(verbose=False):
         print('Cache for previously scraped prices has been cleared.')
 
 # Wrapper to handle connection errors for data fetching functions
-def safe_getter(function, delay_seconds=10, max_tries=None, try_nr=0):
+def safe_getter(function, delay_seconds=10, max_tries=None, try_nr=0, verbose=None):
     '''
     Repeatedly tries to run a function until there are no connection
     errors. Returns whatever the function returns.
@@ -370,7 +370,7 @@ def safe_getter(function, delay_seconds=10, max_tries=None, try_nr=0):
 
     # Try running the function
     try:
-        result = function()
+        result = function(verbose=verbose)
 
     except ConnectionError as e:
 
@@ -386,19 +386,19 @@ def safe_getter(function, delay_seconds=10, max_tries=None, try_nr=0):
 
             # Repeated calling of function until max_tries is reached
             if try_nr < max_tries:
-                safe_getter(function, delay_seconds=delay_seconds, max_tries=max_tries, try_nr=try_nr)
+                safe_getter(function, delay_seconds=delay_seconds, max_tries=max_tries, try_nr=try_nr, verbose=verbose)
 
             else:
                 print(f'{name}(): Maximum connection attempts ({max_tries}) reached. Returned {result}.')
 
         # Possibility: max_tries not set. Unlimited repetitions.
         else:
-            safe_getter(function, delay_seconds=delay_seconds, max_tries=max_tries, try_nr=try_nr)
+            safe_getter(function, delay_seconds=delay_seconds, max_tries=max_tries, try_nr=try_nr, verbose=verbose)
 
     return result
 
 # Helper function: Tries to get token price from SCRAPED_PRICES before scraping
-def sparse_scrape(token_addy, logfile=None):
+def sparse_scrape(token_addy, logfile=None, verbose=False):
     '''
     Returns current USD value of 1 token of given address.
     Scrapes token price from web only if necessary.
@@ -411,7 +411,8 @@ def sparse_scrape(token_addy, logfile=None):
 
         # For debugging:
         symbol = get_token_symbol(token_addy)
-        print(f'Read {symbol} from memory.')
+        if verbose:
+            print(f'Read {symbol} from memory.')
 
     else:
         # Scrape from web
@@ -452,9 +453,9 @@ def get_collateral_token_tup(loan_addy):
     return decoded, token_addy
 
 # Helper function: Returns USD amount *currently* borrowed
-def get_principal_usd_val(loan_addy, logfile=None):
+def get_principal_usd_val(loan_addy, logfile=None, verbose=False):
     amt_raw, token = get_principal_token_tup(loan_addy)
-    token_price = sparse_scrape(token)
+    token_price = sparse_scrape(token, verbose=verbose)
     amt_usd = amt_raw * token_price
 
     # For degugging:
@@ -465,9 +466,9 @@ def get_principal_usd_val(loan_addy, logfile=None):
     return amt_usd
 
 # Helper function: Returns USD amount of collateral *currently* borrowed against
-def get_collateral_usd_val(loan_addy, logfile=None):
+def get_collateral_usd_val(loan_addy, logfile=None, verbose=False):
     amt_raw, token = get_collateral_token_tup(loan_addy)
-    token_price = sparse_scrape(token)
+    token_price = sparse_scrape(token, verbose=verbose)
     amt_usd = amt_raw * token_price
 
     # For degugging:
@@ -541,13 +542,13 @@ def get_supply_for_erc20(symbol=None, address=None):
 
 
 # Get sum of currently borrowed amounts
-def get_currently_borrowed(logfile=None):
+def get_currently_borrowed(logfile=None, verbose=False):
     '''
     Returns sum of borrowed amounts currently.
     TVL = sum of all collateral USD values of active loans
     '''
     active_addies = set(get_active_loans().keys())
-    principal_loan_tups = [(get_principal_usd_val(loan, logfile=logfile), loan) for loan in active_addies]
+    principal_loan_tups = [(get_principal_usd_val(loan, logfile=logfile, verbose=verbose), loan) for loan in active_addies]
     total = sum(tup[0] for tup in principal_loan_tups)
 
     # For debugging:
@@ -556,13 +557,13 @@ def get_currently_borrowed(logfile=None):
     return total
 
 # Get TVL (sum of current collateral values used in loans)
-def get_current_TVL(logfile=None):
+def get_current_TVL(logfile=None, verbose=False):
     '''
     Returns current TVL.
     TVL = sum of all collateral USD values of active loans
     '''
     active_addies = set(get_active_loans().keys())
-    collateral_loan_tups = [(get_collateral_usd_val(loan, logfile=logfile), loan) for loan in active_addies]
+    collateral_loan_tups = [(get_collateral_usd_val(loan, logfile=logfile, verbose=verbose), loan) for loan in active_addies]
     TVL = sum(tup[0] for tup in collateral_loan_tups)
 
     # For debugging:
@@ -571,14 +572,14 @@ def get_current_TVL(logfile=None):
     return TVL
 
 # Get avg principal USD value of all non_defaulted loans (statusses active and repaid)
-def get_avg_loan_val(logfile=None):
+def get_avg_loan_val(logfile=None, verbose=False):
     '''
     Returns average loan USD value (= principal) of all loans.
     Defaulted loans with seized collateral are excluded since
     their principal value is always 0.
     '''
     non_def_addies = set(get_non_defaulted_loans().keys())
-    principal_loan_tups = [(get_principal_usd_val(loan, logfile=logfile), loan) for loan in non_def_addies]
+    principal_loan_tups = [(get_principal_usd_val(loan, logfile=logfile, verbose=verbose), loan) for loan in non_def_addies]
     mean = sum(tup[0] for tup in principal_loan_tups) / len(principal_loan_tups)
 
     # For debugging:
@@ -625,7 +626,7 @@ def get_minted_burned_YLD(current_YLD_supply):
     return minted_burned
 
 # Export specified loan metrics for frontend use or data collection
-def export_loan_metrics_dict():
+def export_loan_metrics_dict(verbose=False):
     d = {}
 
     # Get current UTC time
@@ -641,9 +642,9 @@ def export_loan_metrics_dict():
     d['repaid_loans'] = len(get_repaid_loans())
     d['defauted_loans'] = len(get_defaulted_loans())
     d['percent_defauted'] = (d['defauted_loans'] / d['total_loans']) * 100
-    d['total_collateral_in_use_USD'] = get_current_TVL()
-    d['total_borrowed_USD'] = get_currently_borrowed()
-    d['avg_loan_val_USD'] = get_avg_loan_val()
+    d['total_collateral_in_use_USD'] = get_current_TVL(verbose=verbose)
+    d['total_borrowed_USD'] = get_currently_borrowed(verbose=verbose)
+    d['avg_loan_val_USD'] = get_avg_loan_val(verbose=verbose)
     d['avg_interest_rate'] = get_avg_interest_rate()
     d['avg_loan_duration_days'] = get_avg_loan_duration()
 
@@ -651,6 +652,15 @@ def export_loan_metrics_dict():
     d = {k: round(v, 2) if not isinstance(v, str) else v for k, v in d.items()}
 
     return d
+
+# Append metrics as new row to csv file
+def append_to_csv(csv_file, metrics_dict, verbose=False):
+    df = pd.DataFrame(metrics, index=[0])
+    df.to_csv(csv_file, mode='a', index=False, header=not os.path.exists(csv_file))
+
+    if verbose:
+        print(f'Appended this row to {csv_file}:\n')
+        print(df.iloc[0])
 
 
 
