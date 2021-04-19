@@ -31,20 +31,21 @@ eth = w3.eth
 loan_address = '0xbFE28f2d7ade88008af64764eA16053F705CF1f0'
 loan_fac_address = '0x49aF18b1ecA40Ef89cE7F605638cF675B70012A7'
 
-# TOKEN_METRICS_TODAY <- gets filled by update_daily_metrics()
-TOKEN_METRICS_TODAY = {}
 
 
 #############################################################################
 #
-# Helper functions & global variables
-#   globals():
-#   ABI_LOAN_FAC    Abi for smart contract LoanFactory.sol
-#   ABI_LOAN        Abi for smart contract Loan.sol
-#   LOAN_FAC        Instantiated & queryable smart contract LoanFactory.sol
-#   ALL_LOANS_DATA  dict of dicts: {loan_address_i: {metric_j: val_j, ...}}
+# Global variables
+#
+#   ABI_LOAN_FAC      abi for smart contract LoanFactory.sol
+#   ABI_LOAN          abi for smart contract Loan.sol
+#   LOAN_FAC          instantiated & queryable smart contract LoanFactory.sol
+#   ALL_LOANS_DATA    dict of dicts: {loan_address_i: {metric1: val, metric2: val, ...}}
+#   SCRAPED_PRICES    temporary storage for asset prices to avoid unnecessary scraping
+#   CONNECTION_ERRORS connection error counter (for debugging phase)
 #
 #############################################################################
+
 
 # Query Etherscan API to get ABI for of contract address
 def get_abi(address):
@@ -655,7 +656,7 @@ def export_loan_metrics_dict(verbose=False):
 
 # Append metrics as new row to csv file
 def append_to_csv(csv_file, metrics_dict, verbose=False):
-    df = pd.DataFrame(metrics, index=[0])
+    df = pd.DataFrame(metrics_dict, index=[0])
     df.to_csv(csv_file, mode='a', index=False, header=not os.path.exists(csv_file))
 
     if verbose:

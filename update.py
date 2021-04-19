@@ -39,14 +39,6 @@ def prettyprint(dict_):
     for k,v in dict_.items():
         print("{:35} | {:<20}".format(k,v))
 
-# Helper function to append row to csv file
-def append_to_csv(csv_file, metrics_dict):
-    # df <- metrics_dict
-    df = 0
-    df.to_csv(csv_file, mode='a', header=not os.path.exists(csv_file))
-    print(f'Done. Appended this row to {csv_file}:\n')
-    print(df)
-
 # Print sample
 print('\nLoan metrics updated. Data from export_loan_metrics_dict():')
 prettyprint(metrics)

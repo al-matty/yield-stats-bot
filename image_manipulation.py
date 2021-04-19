@@ -7,7 +7,6 @@ import time
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 from math import floor
-import data_aggregation as da
 
 
 
@@ -35,9 +34,11 @@ def parse_str(float_, roundTo=1):
     if float_ >= 1000000000:
         return str(round_or_not(float_/1000000000)) + 'bn'
     if float_ >= 1000000:
-        return str(round(float_/1000000)) + 'm'
+        return str(round_or_not(float_/1000000)) + 'm'
+    if float_ >= 1000:
+        return str(round_or_not(float_/1000)) + 'k'
     else:
-        return str(round(float_))
+        return str(round_or_not(float_))
 
 # Draw str on image at certain position. Needed by update_loan_stats()
 def draw_str(s, img, pos, fontsize=20, color=(255, 255, 255), font='GothamBook.ttf'):
@@ -57,12 +58,14 @@ def update_loan_stats(d, verbose=False):
     outfile = 'loans.png'
     img = Image.open('loans_template.png')
 
-    # Define metrics and positions
+    # Define metrics
     loans_total = d['total_loans']
     loans_active = d['active_loans']
     loans_defaulted = d['defauted_loans']
     defaulted_frac = d['percent_defauted']
-
+    avg_loan_val = d['avg_loan_val_USD']
+    avg_interest = d['avg_interest_rate']
+    avg_loan_dur = d['avg_loan_duration_days']
 
     # Draw loan metrics on template
 
@@ -100,12 +103,44 @@ def update_loan_stats(d, verbose=False):
     # Defaulted percentage
     stage = parse_str(defaulted_frac) + '%'
     s = stage.center(5)
-    pos = (75, 472)
+    pos = (70, 472)
     draw_str(s, img, pos, fontsize=size, color=color)
     label1 = '   %'.center(7)
     label2 = 'DEFAULTED'.center(7)
     draw_str(label1, img, l1_pos(pos), fontsize=lsize, color=lcolor)
     draw_str(label2, img, long_pos(pos), fontsize=lsize, color=lcolor)
+
+    # Avg loan value
+    stage = parse_str(avg_loan_val)
+    s = stage.center(5)
+    pos = (410, 200)
+    draw_str(s, img, pos, fontsize=size, color=color)
+    label1 = 'AVG LOAN'.center(7)
+    label2 = 'VALUE ($)'.center(7)
+    draw_str(label1, img, l1_pos(pos), fontsize=lsize, color=lcolor)
+    draw_str(label2, img, l2_pos(pos), fontsize=lsize, color=lcolor)
+
+    # Avg loan duration
+    stage = parse_str(avg_loan_dur) + 'd'
+    s = stage.center(5)
+    pos = (410, 336)
+    draw_str(s, img, pos, fontsize=size, color=color)
+    label1 = 'AVG LOAN'.center(7)
+    label2 = 'DURATION'.center(7)
+    draw_str(label1, img, l1_pos(pos), fontsize=lsize, color=lcolor)
+    draw_str(label2, img, l2_pos(pos), fontsize=lsize, color=lcolor)
+
+    # Avg interest rate
+    stage = parse_str(avg_interest) + '%'
+    s = stage.center(5)
+    pos = (410, 472)
+    draw_str(s, img, pos, fontsize=size, color=color)
+    label1 = 'AVG LOAN'.center(7)
+    label2 = 'INTEREST'.center(7)
+    draw_str(label1, img, l1_pos(pos), fontsize=lsize, color=lcolor)
+    draw_str(label2, img, l2_pos(pos), fontsize=lsize, color=lcolor)
+
+
 
 
 
