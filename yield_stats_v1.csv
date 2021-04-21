@@ -1,2 +1,5 @@
 time,YLD_total_supply,YLD_minted_burned,total_loans,active_loans,repaid_loans,defauted_loans,percent_defauted,total_collateral_in_use_USD,total_borrowed_USD,avg_loan_val_USD,avg_interest_rate,avg_loan_duration_days
 18 Apr 2021 - 14:35 UTC,624000,0,36,17,17,2,5.56,307402.35,184258.85,7957.15,7.12,22.53
+19 Apr 2021 - 10:25 UTC,624000,0,37,18,17,2,5.41,363319.96,210210.97,8497.8,7.05,22.3
+20 Apr 2021 - 11:35 UTC,624000,0,37,15,20,2,5.41,332509.82,188585.06,8485.08,7.05,22.3
+21 Apr 2021 - 14:16 UTC,624002,2,38,15,20,3,7.89,443477.23,210008.01,9203.38,7.01,22.5
