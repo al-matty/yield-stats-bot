@@ -48,5 +48,7 @@ print(f'\nAppending data to {metrics_csv}...')
 append_to_csv(metrics_csv, metrics, verbose=False)
 print(f'{metrics_csv} has been updated successfully.')
 
-# Update loans.png
-update_loan_stats(metrics, verbose=True)
+# Update loans.png with the aggregated loan metrics
+update_loan_stats(metrics, 'loans.png', 'loans_template.png', verbose=True)
+
+# Add supply plot to loans.png
