@@ -26,6 +26,8 @@ type_map = {
 
 token_map = {
     '0xfF20817765cB7f73d4bde2e66e067E58D11095C2':
+        {'symbol': 'ADX', 'coingecko_str': 'adex', 'decimals': 18},
+    '0xfF20817765cB7f73d4bde2e66e067E58D11095C2':
         {'symbol': 'AMP', 'coingecko_str': 'amp', 'decimals': 18},
     '0xDcB01cc464238396E213a6fDd933E36796eAfF9f':
         {'symbol': 'YLD', 'coingecko_str': 'yield', 'decimals': 18},
