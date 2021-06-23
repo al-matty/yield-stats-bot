@@ -25,7 +25,7 @@ type_map = {
 # Map linking each supported token to some data needed frequently
 
 token_map = {
-    '0xfF20817765cB7f73d4bde2e66e067E58D11095C2':
+    '0xADE00C28244d5CE17D72E40330B1c318cD12B7c3':
         {'symbol': 'ADX', 'coingecko_str': 'adex', 'decimals': 18},
     '0xfF20817765cB7f73d4bde2e66e067E58D11095C2':
         {'symbol': 'AMP', 'coingecko_str': 'amp', 'decimals': 18},
